@@ -1,0 +1,45 @@
+
+# script_evolve_exp.sh -- Inverse Method code -- used for generating drop shapes for a combination of $\theta_{min}$ and $\theta_{max}$
+case_num=15
+plate_inc_min=0
+plate_inc_max=34
+global_cnt=1
+for ((plate_inc=$plate_inc_min; plate_inc<=$plate_inc_max; plate_inc+=2))
+do
+file_min_name=angle_min_case$case_num"_inc"$plate_inc
+file_max_name=angle_max_case$case_num"_inc"$plate_inc
+exp_min_angle=$(cat $file_min_name)
+exp_min_angle=${exp_min_angle/.*}		
+exp_max_angle=$(cat $file_max_name)
+exp_max_angle=${exp_max_angle/.*}
+min_angle_low=$((exp_min_angle*85/100))
+min_angle_high=$((exp_min_angle*115/100))
+max_angle_low=$((exp_max_angle*85/100))
+max_angle_high=$((exp_max_angle*115/100))
+echo "plate inclination = $plate_inc"
+echo "exp_min_angle = $exp_min_angle"
+echo "exp_max_angle = $exp_max_angle"
+echo "min_angle_low = $min_angle_low"
+echo "min_angle_high = $min_angle_high"
+echo "max_angle_low = $max_angle_low"
+echo "max_angle_high = $max_angle_high"
+local_cnt=1
+for ((min_angle=$min_angle_low; min_angle<=$min_angle_high; min_angle+=1))
+do
+	for ((max_angle=$max_angle_low; max_angle<=$max_angle_high; max_angle+=1))
+	do
+		echo " global_cnt = $global_cnt local_cnt = $local_cnt min_angle = $min_angle max_angle = $max_angle"
+		global_cnt=$((global_cnt+1))
+		local_cnt=$((local_cnt+1))
+
+		if [ "$min_angle" -le "$max_angle"  ] 
+		then
+			echo -e "parameter theta_min = $min_angle\nparameter theta_max = $max_angle\nparameter inclination = $plate_inc*(pi/180)\nparameter case_number = $case_num\nparameter incli = $plate_inc\n" >> "new.fe"
+			cat new.fe evolve_exp.fe > run_evolve_exp.fe
+			evolver run_evolve_exp.fe
+			rm run_evolve_exp.fe
+			rm new.fe
+		fi
+	done
+done
+done

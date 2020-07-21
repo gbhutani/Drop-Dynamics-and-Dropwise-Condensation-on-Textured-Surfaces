@@ -1,0 +1,113 @@
+// evolve_exp.fe
+parameter theta_min = 66 // must be removed when using in conjunction with the inverse method bash script
+parameter theta_max = 89 // must be removed when using in conjunction with the inverse method bash script
+parameter cntt = 0
+parameter tens = 0.0634
+parameter side = 0.001709976	// for 5uL
+parameter inclination = 10*(pi/180)
+parameter G_grav = 9.8	// negative for a sessile drop
+parameter RHO = 1266
+parameter xmin = -0.000569992/4
+parameter xmax = 0.000569992/4
+parameter centre_x = 0	// for initialisation only
+parameter centre_y = 0	// for initialisation only
+gravity_constant 0  // start with gravity off
+
+constraint 1   /* the table top */
+formula: x3 = 0
+energy:  // for contact angle
+e1: -((-cos((2*((theta_max*(pi/180) - theta_min*(pi/180))/(pi^3))*(acos((x-centre_x)/(sqrt((x-centre_x)^2+(y-centre_y)^2))))^3) - (3*((theta_max*(pi/180) - theta_min*(pi/180))/(pi^2))*(acos((x-centre_x)/(sqrt((x-centre_x)^2+(y-centre_y)^2))))^2) + (theta_max*(pi/180))))*y*tens)	// 3rd order in theta (Elsherbini) for pendant
+e2: 0
+e3: 0 
+
+// named quantity for arbitrary direction gravity on facets
+quantity arb_grav energy method facet_vector_integral
+vector_integrand:
+q1:  0
+q2:  0
+q3:  -RHO*G_grav*sin(inclination)*x*z - RHO*G_grav*cos(inclination)*((z^2)/2)
+
+vertices
+1   0.0-side/2.0  0.0-side/2.0 0.0  constraint 1  // constraint 2
+2   side-side/2.0  0.0-side/2.0 0.0  constraint 1 // constraint 2
+3   side-side/2.0  side-side/2.0 0.0  constraint 1 // constraint 2
+4   0.0-side/2.0  side-side/2.0 0.0  constraint 1 // constraint 2
+5   0.0-side/2.0  0.0-side/2.0 side // constraint 2
+6   side-side/2.0  0.0-side/2.0 side // constraint 2
+7   side-side/2.0 side-side/2.0 side // constraint 2
+8   0.0-side/2.0  side-side/2.0 side // constraint 2
+
+edges  /* given by endpoints and attribute */
+1   1 2    constraint 1 // constraint 2 
+2   2 3    constraint 1 // constraint 2
+3   3 4    constraint 1 // constraint 2
+4   4 1    constraint 1 // constraint 2
+5   5 6 // constraint 2
+6   6 7 // constraint 2 
+7   7 8 // constraint 2
+8   8 5 // constraint 2
+9   1 5 // constraint 2
+10  2 6 // constraint 2 
+11  3 7 // constraint 2
+12  4 8 // constraint 2
+
+faces  /* given by oriented edge loop */
+1   1 10 -5  -9 tension tens arb_grav
+2   2 11 -6 -10 tension tens arb_grav
+3   3 12 -7 -11 tension tens arb_grav
+4   4  9 -8 -12 tension tens arb_grav
+5   5  6  7   8 tension tens arb_grav
+
+bodies  /* one body, defined by its oriented faces */
+1   1 2 3 4 5   volume 5.0e-9  density 0
+
+read
+re := {refine edges where on_constraint 1 }
+
+inc10 := 
+{ 
+//	GEOMVIEW;
+r;re;r;
+cntt := 0; 
+while cntt < 200 do 
+{ 
+	xmin := (min(vertex where x3 == 0, x1) + (max(vertex where x3 == 0, x1) - min(vertex where x3 == 0, x1))*(0/3)); 
+	xmax := (min(vertex where x3 == 0, x1) + (max(vertex where x3 == 0, x1) - min(vertex where x3 == 0, x1))*(3/3)); 
+	print (xmax - xmin); 
+	centre_x := ((min(vertex where x3 == 0, x1) + max(vertex where x3 == 0, x1))/2); 
+	centre_y := ((min(vertex where x3 == 0, x2) + max(vertex where x3 == 0, x2))/2); 
+	print cntt; printf "theta_min=%g", theta_min; printf "theta_max=%g", theta_max;
+	recalc; 
+	set vertices constraint 1 where on_constraint 1; 
+	set edges constraint 1 where on_constraint 1; 
+	set facets arb_grav; g5; cntt := cntt + 1 
+}; 
+re; r; 
+cntt := 0; 
+while cntt < 200 do 
+{ 
+	xmin := (min(vertex where x3 == 0, x1) + (max(vertex where x3 == 0, x1) - min(vertex where x3 == 0, x1))*(0/3)); 
+	xmax := (min(vertex where x3 == 0, x1) + (max(vertex where x3 == 0, x1) - min(vertex where x3 == 0, x1))*(3/3)); 
+	print (xmax-xmin); 
+	centre_x := ((min(vertex where x3 == 0, x1) + max(vertex where x3 == 0, x1))/2); 
+	centre_y := ((min(vertex where x3 == 0, x2) + max(vertex where x3 == 0, x2))/2);  
+	print cntt; printf "theta_min=%g", theta_min; printf "theta_max=%g", theta_max;
+	recalc; 
+	set vertices constraint 1 where on_constraint 1; 
+	set edges constraint 1 where on_constraint 1; 
+	set facets arb_grav; g2; cntt := cntt + 1 
+};
+
+header_off :=  { printf "VARIABLES = \"X\" ,\"Y\",\"Z\"\n ZONE N =%g E =%g DATAPACKING=POINT  ZONETYPE=FETRIANGLE\n",vertex_count,facet_count; };
+aa := foreach vertex vv do { printf "%f %f %f\n",x,y,z };
+    bb := foreach facet ff do { foreach ff.vertex do printf "%g ",id; printf "\n"};
+    do_off := {header_off; aa; bb;};
+do_vol := {show_vol;};
+    off_filename := sprintf "cat >num_%g_%g_cas1.off",theta_min,theta_max;
+vol_filename := sprintf "cat >vol_%g_%g_cas1.off",theta_min,theta_max;
+    do_off | off_filename;
+do_vol | vol_filename;
+}
+
+inc10
+q

@@ -1,0 +1,48 @@
+// bc_points_extract.m
+% bc_img_file='bc_case1_2.tif';
+function [x_left,x_right,y_top,y_bot] = bc_points_extract(bc_img_file)
+img = imread(bc_img_file);
+size_img=size(img);
+height=size_img(1);
+width=size_img(2);
+for i=10:height-10
+    change=0;
+    left_change=0;
+    old=img(i,10);
+    for j=11:width-10
+        new=img(i,j);
+        if (left_change==0 & old==255 & new<255)
+           change=1;
+            left(i)=j; 
+            left_change=1;
+        elseif (old<255 & new==255)
+            change=1;
+            right(i)=j-1;
+        end
+        old=new;
+    end
+    if change==0
+       left(i)=0;
+       right(i)=0;
+    end
+end
+old=left(1);
+top_found=0;
+for i=2:length(left)
+new=left(i);
+if (top_found==0 & old==0 & new>0)
+    y_top=i;
+    top_found=1;
+end
+if (old>0 & new==0)
+    y_bot=i-1;
+end
+old=new;
+end
+for i=y_top:y_bot
+if left(i)==0
+    left(i)=max(left);
+end
+end
+x_left=min(left(y_top:y_bot));
+x_right=max(right);

@@ -1,0 +1,10 @@
+# script_tec_report_plots.m
+filname=$(cat tfilname.txt)
+outfile=$(cat toutfile.txt)
+echo -e '#!MC 1200\n$!VARSET |INPUT_FILE| = '"'$filname'\n"'$!VARSET |OUT_FILE| = ' "'$outfile'\n" >> "new"
+cat new drop_3d_tecmac.mcr > tec_report.mcr
+tec360 -b tec_report.mcr
+rm -f new
+rm -f tec_report.mcr
+rm -f tfilname.txt
+rm -f toutfile.txt

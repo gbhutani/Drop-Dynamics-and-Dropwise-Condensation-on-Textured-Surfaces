@@ -1,0 +1,47 @@
+// compare_drops_3di_plane.m -- Matlab function to calculate error between experimental and numerical profiles
+function error_rms = compare_drops_3di_plane(x_t,y_t,span_t,x_exp,y_exp,curve_degree,inclination)
+% find the r,theta equaivalent from the x_t,y_t drop
+base_radius = span_t/2;
+for qq=1:length(x_t)
+    v1_x = x_t(qq) - base_radius;
+    v1_y = y_t(qq);
+    v2_x = base_radius;
+    v2_y = 0;
+    V1 = [v1_x v1_y];
+    V2 = [v2_x v2_y];
+    theta_num(qq) = acos(dot(V1,V2)/(norm(V1)*norm(V2)));
+    rad_num(qq) = norm(V1);
+end
+% find the r,theta equaivalent from the x_exp,y_exp drop
+for qq=1:length(x_exp)
+    v1_x = x_exp(qq)-base_radius;
+    v1_y = y_exp(qq);
+    v2_x = base_radius;
+    v2_y = 0;
+    V1 = [v1_x v1_y];
+    V2 = [v2_x v2_y];
+    theta_exp(qq) = acos(dot(V1,V2)/(norm(V1)*norm(V2)));
+    rad_exp(qq) = norm(V1);
+end
+p_exp = polyfit(theta_exp,rad_exp,curve_degree);
+p_num = polyfit(theta_num,rad_num,curve_degree);
+theta_min = 0;
+theta_max = pi;
+n_div = 40;
+theta_plot = theta_min:((theta_max-theta_min)/n_div):theta_max;
+rad_exp_fit_plot = polyval(p_exp,theta_plot);
+rad_num_fit_plot= polyval(p_num,theta_plot);
+error_arr = rad_num_fit_plot - rad_exp_fit_plot;
+error_rms = sqrt(mean(error_arr.^2));
+figure;
+plot(theta_exp.*(180/pi),rad_exp,'k.',theta_num.*(180/pi),rad_num,'b+');
+grid on;
+axis([0 180 0 max(rad_num)*1.2]);
+% saveas(gcf,strcat('t_r_inc',num2str(inclination),'.tif'),'tif');
+% close;
+figure;
+plot(x_exp,-y_exp,'k.',x_t,-y_t,'b+');    
+axis equal;
+grid on;
+% saveas(gcf,strcat('num_exp_inc',num2str(inclination),'.tif'),'tif');
+% close;
